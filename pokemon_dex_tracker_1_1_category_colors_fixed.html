@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><script nonce="zvT+sY2rm6ofAgTmPb2r4Q" src="https://chatgpt.com/__DLD__919346c914920a9307b34bc28d4bd7a68705647c6a84dea1e8dece440e5677bd/resources/setup.js"></script><script nonce="Mft6/j333re34RXbdlNjUg" src="https://chatgpt.com/__DLD__919346c914920a9307b34bc28d4bd7a68705647c6a84dea1e8dece440e5677bd/resources/frontend.min.js" server="https://localhost:49358" id="__dld-frontend__" async defer></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pokédex Tracker</title>
+<style>
+  :root { --bg:#f4f5f7; --card:#fff; --text:#202124; --muted:#6b7280; --border:#d8dbe0; --accent:#e3350d; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--text); }
+  header { background:#202124; color:white; padding:24px 20px; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px #0002; }
+  .header-inner { max-width:1200px; margin:auto; display:flex; gap:18px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  h1 { margin:0; font-size:1.55rem; }
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  select, button { font:inherit; border-radius:9px; border:1px solid #ccc; padding:9px 12px; cursor:pointer; }
+  select { background:white; color:#222; }
+  button { background:#fff; }
+  main { max-width:1200px; margin:22px auto; padding:0 16px 40px; }
+  .toolbar { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .stats { color:var(--muted); font-size:.95rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:12px; }
+  .pokemon { position:relative; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; min-height:190px; cursor:pointer; transition:.15s; user-select:none; overflow:hidden; }
+  .pokemon:hover { transform:translateY(-2px); box-shadow:0 5px 16px #0001; }
+  .pokemon.mark-x { background:#fff7f7; border-color:#ef4444; }
+  .pokemon.mark-flag { background:#fffbea; border-color:#eab308; }
+  .sprite { width:105px; height:105px; display:block; margin:2px auto 5px; image-rendering:auto; }
+  .name { text-align:center; font-weight:700; text-transform:capitalize; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dex { text-align:center; color:var(--muted); font-size:.82rem; margin-top:2px; }
+  .types { display:flex; justify-content:center; gap:5px; margin-top:8px; }
+  .type { color:white; font-size:.68rem; font-weight:700; text-transform:uppercase; padding:3px 7px; border-radius:20px; text-shadow:0 1px 1px #0005; }
+  .mark { position:absolute; inset:0; display:none; align-items:center; justify-content:center; font-size:5rem; font-weight:900; pointer-events:none; text-shadow:0 2px 4px #0003; }
+  .mark-x { color:#dc2626; }
+  .mark-flag { color:#ca8a04; }
+  .pokemon.mark-x .mark-x, .pokemon.mark-flag .mark-flag { display:flex; }
+  .legend { color:var(--muted); font-size:.85rem; }
+  .loading { text-align:center; padding:50px; color:var(--muted); }
+  .error { background:#fee2e2; border:1px solid #fecaca; padding:16px; border-radius:10px; color:#991b1b; }
+  @media (max-width:600px){ .grid{grid-template-columns:repeat(2,1fr)} .pokemon{min-height:180px} }
+</style>
+
+<style id="type-sidebar-style">
+.layout-with-sidebar{max-width:1200px;margin:22px auto;padding:0 16px 40px;display:grid;grid-template-columns:235px 1fr;gap:18px}
+.type-sidebar{background:#fff;border:1px solid #d8dbe0;border-radius:14px;padding:15px;height:max-content;position:sticky;top:105px}
+.type-sidebar h2{font-size:1rem;margin:0 0 12px}.type-step{font-weight:700;margin:12px 0 7px}
+.type-choice{display:block;width:100%;text-align:left;margin:6px 0;background:#f8f9fa;color:#202124}
+.type-choice.active{background:#202124;color:#fff;border-color:#202124}
+.sidebar-types{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sidebar-type{color:#fff!important;border:0!important;font-size:.74rem!important;text-transform:capitalize;text-shadow:0 1px 2px #0006;padding:7px 4px!important}
+.type-clear{width:100%;margin-top:12px}.type-hint{font-size:.78rem;color:#6b7280;line-height:1.35;margin-top:12px}
+.type-flash{animation:typeFlash 1s ease-in-out infinite alternate!important}
+@keyframes typeFlash{from{background:#fff}to{background:#fff1a8}}
+@media(max-width:800px){.layout-with-sidebar{grid-template-columns:1fr}.type-sidebar{position:static}}
+</style>
+<style id="exact-five-columns">
+.grid{display:grid!important;grid-template-columns:repeat(5,1fr)!important;gap:12px!important}
+</style><style id="category-card-colors">
+.pokemon{--cat:#fff;--cat2:#fff;background:var(--cat);border-color:var(--cat2)}
+.pokemon.cat-mythical{--cat:#00c7d9;--cat2:#008fa5;background:linear-gradient(135deg,#087f92 0%,#39e5ef 42%,#00aabd 70%,#006f82 100%);border-color:#00aabd}
+.pokemon.cat-legendary{--cat:#db2487;--cat2:#9f075c;background:linear-gradient(135deg,#8e0754 0%,#db2487 45%,#f14aaa 68%,#a80761 100%);border-color:#db2487}
+.pokemon.cat-pseudo{--cat:#c7cbd1;--cat2:#8b929c;background:linear-gradient(135deg,#8a929b 0%,#eef1f4 42%,#b7bdc5 65%,#777f89 100%);border-color:#9aa2ab}
+.pokemon.type-flash{animation:categoryFlash 1s ease-in-out infinite alternate!important}
+.pokemon.cat-mythical.type-flash{background:linear-gradient(135deg,#087f92 0%,#39e5ef 43%,#39e5ef 49%,#fff1a8 50%,#fff1a8 100%)!important}
+.pokemon.cat-legendary.type-flash{background:linear-gradient(135deg,#8e0754 0%,#db2487 43%,#db2487 49%,#fff1a8 50%,#fff1a8 100%)!important}
+.pokemon.cat-pseudo.type-flash{background:linear-gradient(135deg,#8a929b 0%,#eef1f4 43%,#eef1f4 49%,#fff1a8 50%,#fff1a8 100%)!important}
+@keyframes categoryFlash{from{filter:brightness(1)}to{filter:brightness(1.06)}}
+</style></head>
+<body>
+<header>
+  <div class="header-inner">
+    <h1>Pokédex Tracker</h1>
+    <div class="controls">
+      <label for="generation">Generation:</label>
+      <select id="generation">
+        <option value="1">I — Kanto</option>
+        <option value="2">II — Johto</option>
+        <option value="3">III — Hoenn</option>
+        <option value="4">IV — Sinnoh</option>
+        <option value="5">V — Unova</option>
+        <option value="6">VI — Kalos</option>
+        <option value="7">VII — Alola</option>
+      </select>
+      <button id="clear">Clear marks</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout-with-sidebar"><aside class="type-sidebar"><h2>Type Finder</h2><div class="type-step">1. Choose a category</div><button class="type-choice" data-type-mode="defense">Weaknesses and resistances</button><button class="type-choice" data-type-mode="offense">Effective against</button><div class="type-step">2. Choose an effect</div><div id="typeEffects"></div><div class="type-step">3. Choose a type</div><div id="sidebarTypes" class="sidebar-types"></div><button id="clearTypeFilter" class="type-clear">Clear</button><div class="type-hint">Matching Pokémon will flash light yellow until Clear is pressed.</div></aside><main>
+  <div class="toolbar">
+    <div class="stats" id="stats">Choose a generation.</div>
+    <div class="legend">Click: normal → ❌ → 🚩 → normal</div>
+  </div>
+  <div id="content" class="loading">Loading Pokémon…</div>
+</main></div>
+
+<script>
+const ranges = {
+  1:[1,151], 2:[152,251], 3:[252,386], 4:[387,493],
+  5:[494,649], 6:[650,721], 7:[722,809]
+};
+const typeColors = {
+  normal:"#8a8a59", fire:"#f08030", water:"#6890f0", electric:"#f8d030",
+  grass:"#78c850", ice:"#98d8d8", fighting:"#c03028", poison:"#a040a0",
+  ground:"#e0c068", flying:"#a890f0", psychic:"#f85888", bug:"#a8b820",
+  rock:"#b8a038", ghost:"#705898", dragon:"#7038f8", dark:"#705848",
+  steel:"#b8b8d0", fairy:"#ee99ac"
+};
+const genEl = document.getElementById("generation");
+const content = document.getElementById("content");
+const stats = document.getElementById("stats");
+const clearBtn = document.getElementById("clear");
+let pokemon = [];
+let marks = JSON.parse(localStorage.getItem("pokedex-marks") || "{}");
+
+function saveMarks(){ localStorage.setItem("pokedex-marks", JSON.stringify(marks)); }
+
+async function loadGeneration(gen){
+  const [start,end] = ranges[gen];
+  content.className = "loading";
+  content.textContent = "Loading Pokémon…";
+  try {
+    const requests = [];
+    for(let id=start; id<=end; id++) requests.push(fetch(`https://pokeapi.co/api/v2/pokemon/${id}`).then(r=>{
+      if(!r.ok) throw new Error("PokéAPI request failed");
+      return r.json();
+    }));
+    pokemon = await Promise.all(requests);
+    render();
+  } catch(e) {
+    content.className = "error";
+    content.innerHTML = "Could not load the Pokédex. Check your internet connection and refresh the page.";
+  }
+}
+
+const mythicalIds=new Set([151,251,385,386,489,490,491,492,493,647,648,649,719,720,721,801,802,807,808,809]);
+const legendaryIds=new Set([144,145,146,150,243,244,245,249,250,377,378,379,380,381,382,383,384,480,481,482,483,484,485,486,487,488,638,639,640,641,642,643,644,645,646,716,717,718,785,786,787,788,789,790,791,792,800]);
+const pseudoIds=new Set([149,248,376,445,635,706,784]);
+function categoryClass(id){if(mythicalIds.has(id))return 'cat-mythical';if(legendaryIds.has(id))return 'cat-legendary';if(pseudoIds.has(id))return 'cat-pseudo';return '';}
+function render(){
+  const [start,end] = ranges[genEl.value];
+  const visible = pokemon;
+  const xCount = visible.filter(p=>marks[p.id]==="x").length;
+  const flagCount = visible.filter(p=>marks[p.id]==="flag").length;
+  stats.textContent = `${visible.length} Pokémon • ${xCount} ❌ • ${flagCount} 🚩`;
+  content.className = "grid";
+  content.innerHTML = "";
+  visible.forEach(p=>{
+    const card = document.createElement("div");
+    card.className = "pokemon " + categoryClass(p.id) + " " + (marks[p.id] ? "mark-"+marks[p.id] : "");
+    card.dataset.id = p.id;
+    const types = p.types.map(t=>`<span class="type" style="background:${typeColors[t.type.name]||"#777"}">${t.type.name}</span>`).join("");
+    card.innerHTML = `
+      <img class="sprite" src="${p.sprites.front_default || ""}" alt="${p.name}">
+      <div class="name">${p.name}</div>
+      <div class="dex">#${String(p.id).padStart(3,"0")}</div>
+      <div class="types">${types}</div>
+      <div class="mark mark-x">×</div>
+      <div class="mark mark-flag">⚑</div>
+    `;
+    card.addEventListener("click", ()=>{
+      const current = marks[p.id];
+      marks[p.id] = current === undefined ? "x" : current === "x" ? "flag" : undefined;
+      if(marks[p.id] === undefined) delete marks[p.id];
+      saveMarks();
+      render();
+    });
+    content.appendChild(card);
+  });
+}
+
+genEl.addEventListener("change", ()=>loadGeneration(genEl.value));
+clearBtn.addEventListener("click", ()=>{
+  const [start,end] = ranges[genEl.value];
+  for(let id=start; id<=end; id++) delete marks[id];
+  saveMarks();
+  render();
+});
+
+loadGeneration("1");
+
+const sidebarTypeColors={normal:"#8a8a59",fire:"#f08030",water:"#6890f0",electric:"#f8d030",grass:"#78c850",ice:"#98d8d8",fighting:"#c03028",poison:"#a040a0",ground:"#e0c068",flying:"#a890f0",psychic:"#f85888",bug:"#a8b820",rock:"#b8a038",ghost:"#705898",dragon:"#7038f8",dark:"#705848",steel:"#b8b8d0",fairy:"#ee99ac"};
+const sidebarTypes=Object.keys(sidebarTypeColors);
+const sidebarChart={}; sidebarTypes.forEach(a=>{sidebarChart[a]={};sidebarTypes.forEach(b=>sidebarChart[a][b]=1)});
+function tc(a,b,v){sidebarChart[a][b]=v}
+[
+["normal","rock",.5],["normal","ghost",0],["normal","steel",.5],
+["fire","fire",.5],["fire","water",.5],["fire","grass",2],["fire","ice",2],["fire","bug",2],["fire","rock",.5],["fire","dragon",.5],["fire","steel",2],
+["water","fire",2],["water","water",.5],["water","grass",.5],["water","ground",2],["water","rock",2],["water","dragon",.5],
+["electric","water",2],["electric","electric",.5],["electric","grass",.5],["electric","ground",0],["electric","flying",2],["electric","dragon",.5],
+["grass","fire",.5],["grass","water",2],["grass","grass",.5],["grass","poison",.5],["grass","ground",2],["grass","flying",.5],["grass","bug",.5],["grass","rock",2],["grass","dragon",.5],["grass","steel",.5],
+["ice","fire",.5],["ice","water",.5],["ice","grass",2],["ice","ice",.5],["ice","ground",2],["ice","flying",2],["ice","dragon",2],["ice","steel",.5],
+["fighting","normal",2],["fighting","ice",2],["fighting","poison",.5],["fighting","flying",.5],["fighting","psychic",.5],["fighting","bug",.5],["fighting","rock",2],["fighting","ghost",0],["fighting","dark",2],["fighting","steel",2],["fighting","fairy",.5],
+["poison","grass",2],["poison","poison",.5],["poison","ground",.5],["poison","rock",.5],["poison","ghost",.5],["poison","steel",0],["poison","fairy",2],
+["ground","fire",2],["ground","electric",2],["ground","grass",.5],["ground","poison",2],["ground","flying",0],["ground","bug",.5],["ground","rock",2],["ground","steel",2],
+["flying","electric",.5],["flying","grass",2],["flying","fighting",2],["flying","bug",2],["flying","rock",.5],["flying","steel",.5],
+["psychic","fighting",2],["psychic","poison",2],["psychic","psychic",.5],["psychic","steel",.5],["psychic","dark",0],
+["bug","fire",.5],["bug","grass",2],["bug","fighting",.5],["bug","poison",.5],["bug","flying",.5],["bug","psychic",2],["bug","ghost",.5],["bug","dark",2],["bug","steel",.5],["bug","fairy",.5],
+["rock","fire",2],["rock","ice",2],["rock","fighting",.5],["rock","ground",.5],["rock","flying",2],["rock","bug",2],["rock","steel",.5],
+["ghost","normal",0],["ghost","psychic",2],["ghost","ghost",2],["ghost","dark",.5],
+["dragon","dragon",2],["dragon","steel",.5],["dragon","fairy",0],
+["dark","fighting",.5],["dark","psychic",2],["dark","ghost",2],["dark","dark",.5],["dark","fairy",.5],
+["steel","fire",.5],["steel","water",.5],["steel","electric",.5],["steel","ice",2],["steel","rock",2],["steel","steel",.5],["steel","fairy",2],
+["fairy","fire",.5],["fairy","fighting",2],["fairy","poison",.5],["fairy","dragon",2],["fairy","dark",2],["fairy","steel",.5]
+].forEach(x=>tc(...x));
+
+let sidebarMode=null,sidebarEffect=null,sidebarTarget=null;
+function sidebarMatch(p){
+ if(!sidebarTarget||!sidebarEffect)return false;
+ const ts=p.types.map(x=>x.type.name);
+ const mult=ts.reduce((n,t)=>n*sidebarChart[sidebarTarget][t],1);
+ if(sidebarEffect==="weak")return mult>1;
+ if(sidebarEffect==="resist")return mult<1;
+ // For offense filters, the selected type is the defending/target type.
+ // Example: Fire -> Effective against includes Water, Ground and Rock.
+ if(sidebarEffect==="strong")return ts.some(t=>sidebarChart[t][sidebarTarget]>1);
+ // Example: Fire -> Not effective against includes Grass (among others).
+ return ts.some(t=>sidebarChart[t][sidebarTarget]<1);
+}
+function refreshSidebar(){
+ document.querySelectorAll(".pokemon").forEach(card=>{
+   const id=Number(card.dataset.id);
+   const p=pokemon.find(x=>x.id===id);
+   if(p)card.classList.toggle("type-flash",sidebarMatch(p));
+ });
+}
+function showSidebarTypes(){
+ const box=document.getElementById("sidebarTypes");box.innerHTML="";
+ sidebarTypes.forEach(t=>{
+   const b=document.createElement("button");b.className="sidebar-type";b.textContent=t;b.style.background=sidebarTypeColors[t];
+   b.onclick=()=>{sidebarTarget=t;refreshSidebar()};
+   box.appendChild(b);
+ });
+}
+document.querySelectorAll("[data-type-mode]").forEach(b=>b.onclick=()=>{
+ sidebarMode=b.dataset.typeMode;sidebarEffect=null;sidebarTarget=null;
+ document.querySelectorAll("[data-type-mode]").forEach(x=>x.classList.toggle("active",x===b));
+ const box=document.getElementById("typeEffects");box.innerHTML="";
+ const opts=sidebarMode==="defense"?[["weak","Weak to:"],["resist","Resistant to:"]]:[["strong","Effective against:"],["weakoff","Not effective against:"]];
+ opts.forEach(([v,label])=>{
+   const x=document.createElement("button");x.className="type-choice";x.textContent=label;
+   x.onclick=()=>{sidebarEffect=v;sidebarTarget=null;document.querySelectorAll("#typeEffects .type-choice").forEach(y=>y.classList.remove("active"));x.classList.add("active");showSidebarTypes();refreshSidebar()};
+   box.appendChild(x);
+ });
+ document.getElementById("sidebarTypes").innerHTML="";
+ refreshSidebar();
+});
+document.getElementById("clearTypeFilter").onclick=()=>{sidebarEffect=null;sidebarTarget=null;document.getElementById("sidebarTypes").innerHTML="";refreshSidebar()};
+</script>
+</body>
+</html>
